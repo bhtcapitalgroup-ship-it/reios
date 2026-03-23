@@ -1,0 +1,1332 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>REIOS — Real Estate Investor Operating System</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        brand: { 50:'#eef7ff',100:'#d9edff',200:'#bce0ff',300:'#8eccff',400:'#53b0ff',500:'#2b8eff',600:'#1570f5',700:'#105ae1',800:'#1349b7',900:'#133f90' },
+                        dark: { 50:'#161b2e',100:'#121729',200:'#0f1322',300:'#0a0e1a',400:'#080b15',500:'#050710' },
+                        surface: { 100:'#1a2038',200:'#151b30',300:'#111728',400:'#0d1220',500:'#0a0e1a' },
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+        *{font-family:'Inter',sans-serif;scrollbar-width:thin;scrollbar-color:#1a2038 transparent}
+        ::-webkit-scrollbar{width:6px;height:6px}
+        ::-webkit-scrollbar-track{background:transparent}
+        ::-webkit-scrollbar-thumb{background:#1a2038;border-radius:3px}
+        body{background:#0a0e1a;color:#e2e8f0;overflow:hidden;height:100vh}
+        .glass{background:rgba(15,23,42,0.6);backdrop-filter:blur(16px);border:1px solid rgba(255,255,255,0.06)}
+        .glass-light{background:rgba(20,28,50,0.5);backdrop-filter:blur(12px);border:1px solid rgba(255,255,255,0.04)}
+        .glass-hover:hover{background:rgba(20,28,50,0.8);border-color:rgba(43,142,255,0.15)}
+        .glow{box-shadow:0 0 40px rgba(43,142,255,0.06)}
+        .glow-blue{box-shadow:0 0 20px rgba(43,142,255,0.15)}
+        .gradient-text{background:linear-gradient(135deg,#2b8eff,#53b0ff,#8eccff);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+        .gradient-border{border-image:linear-gradient(135deg,rgba(43,142,255,0.3),rgba(16,90,225,0.1)) 1}
+        .sidebar-item{transition:all .2s}
+        .sidebar-item:hover,.sidebar-item.active{background:rgba(43,142,255,0.1);color:#2b8eff}
+        .sidebar-item.active{border-right:2px solid #2b8eff}
+        .score-ring{position:relative;display:inline-flex;align-items:center;justify-content:center}
+        .score-ring svg{transform:rotate(-90deg)}
+        .input-field{background:rgba(10,14,26,0.6);border:1px solid rgba(255,255,255,0.08);color:#e2e8f0;transition:border-color .2s}
+        .input-field:focus{border-color:rgba(43,142,255,0.4);outline:none;box-shadow:0 0 0 3px rgba(43,142,255,0.08)}
+        .input-field::placeholder{color:#475569}
+        .btn-primary{background:linear-gradient(135deg,#2b8eff,#1570f5);color:white;font-weight:600;transition:all .2s}
+        .btn-primary:hover{box-shadow:0 4px 20px rgba(43,142,255,0.3);transform:translateY(-1px)}
+        .btn-primary:active{transform:translateY(0)}
+        .btn-primary:disabled{opacity:0.5;cursor:not-allowed;transform:none;box-shadow:none}
+        .btn-secondary{background:rgba(43,142,255,0.08);color:#2b8eff;border:1px solid rgba(43,142,255,0.2);font-weight:500;transition:all .2s}
+        .btn-secondary:hover{background:rgba(43,142,255,0.15);border-color:rgba(43,142,255,0.3)}
+        .badge{font-size:0.65rem;padding:2px 8px;border-radius:9999px;font-weight:600;text-transform:uppercase;letter-spacing:0.05em}
+        .badge-gray{background:rgba(100,116,139,0.2);color:#94a3b8}
+        .badge-blue{background:rgba(43,142,255,0.15);color:#53b0ff}
+        .badge-amber{background:rgba(245,158,11,0.15);color:#fbbf24}
+        .badge-emerald{background:rgba(16,185,129,0.15);color:#34d399}
+        .badge-red{background:rgba(239,68,68,0.15);color:#f87171}
+        .badge-purple{background:rgba(139,92,246,0.15);color:#a78bfa}
+        .spinner{border:3px solid rgba(43,142,255,0.1);border-top:3px solid #2b8eff;border-radius:50%;width:28px;height:28px;animation:spin .8s linear infinite}
+        @keyframes spin{to{transform:rotate(360deg)}}
+        @keyframes fadeIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+        .fade-in{animation:fadeIn .3s ease-out}
+        .tab-content{display:none}
+        .tab-content.active{display:block}
+        .modal-overlay{background:rgba(5,7,16,0.85);backdrop-filter:blur(8px)}
+        .tooltip{position:relative}
+        .tooltip::after{content:attr(data-tip);position:absolute;left:calc(100% + 10px);top:50%;transform:translateY(-50%);background:#1a2038;color:#e2e8f0;padding:4px 10px;border-radius:6px;font-size:0.7rem;white-space:nowrap;opacity:0;pointer-events:none;transition:opacity .15s;border:1px solid rgba(255,255,255,0.06)}
+        .tooltip:hover::after{opacity:1}
+        table{border-collapse:separate;border-spacing:0}
+        .table-row{transition:background .15s}
+        .table-row:hover{background:rgba(43,142,255,0.04)}
+    </style>
+</head>
+<body>
+
+<!-- Auth Modal -->
+<div id="authModal" class="fixed inset-0 z-50 flex items-center justify-center modal-overlay hidden">
+    <div class="glass rounded-2xl p-8 w-full max-w-md glow fade-in">
+        <div class="text-center mb-8">
+            <div class="flex items-center justify-center gap-2 mb-2">
+                <div class="w-9 h-9 rounded-lg bg-gradient-to-br from-brand-500 to-brand-700 flex items-center justify-center">
+                    <i data-lucide="building-2" class="w-5 h-5 text-white"></i>
+                </div>
+                <span class="text-xl font-bold gradient-text">REIOS</span>
+            </div>
+            <p class="text-sm text-slate-400">Real Estate Investor Operating System</p>
+        </div>
+        <div id="authTabs" class="flex mb-6 bg-dark-50 rounded-lg p-1">
+            <button onclick="showAuthTab('login')" id="loginTab" class="flex-1 py-2 px-4 rounded-md text-sm font-medium transition-all bg-brand-500/10 text-brand-400">Sign In</button>
+            <button onclick="showAuthTab('register')" id="registerTab" class="flex-1 py-2 px-4 rounded-md text-sm font-medium transition-all text-slate-400">Register</button>
+        </div>
+        <div id="authError" class="hidden mb-4 p-3 rounded-lg bg-red-500/10 border border-red-500/20 text-red-400 text-sm"></div>
+        <!-- Login -->
+        <form id="loginForm" onsubmit="handleLogin(event)">
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-xs font-medium text-slate-400 mb-1.5">Email</label>
+                    <input type="email" id="loginEmail" required placeholder="you@example.com" class="input-field w-full px-4 py-2.5 rounded-lg text-sm">
+                </div>
+                <div>
+                    <label class="block text-xs font-medium text-slate-400 mb-1.5">Password</label>
+                    <input type="password" id="loginPassword" required placeholder="Enter password" class="input-field w-full px-4 py-2.5 rounded-lg text-sm">
+                </div>
+                <button type="submit" class="btn-primary w-full py-2.5 rounded-lg text-sm">Sign In</button>
+            </div>
+        </form>
+        <!-- Register -->
+        <form id="registerForm" class="hidden" onsubmit="handleRegister(event)">
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-xs font-medium text-slate-400 mb-1.5">Full Name</label>
+                    <input type="text" id="regName" required placeholder="John Doe" class="input-field w-full px-4 py-2.5 rounded-lg text-sm">
+                </div>
+                <div>
+                    <label class="block text-xs font-medium text-slate-400 mb-1.5">Email</label>
+                    <input type="email" id="regEmail" required placeholder="you@example.com" class="input-field w-full px-4 py-2.5 rounded-lg text-sm">
+                </div>
+                <div>
+                    <label class="block text-xs font-medium text-slate-400 mb-1.5">Password</label>
+                    <input type="password" id="regPassword" required minlength="8" placeholder="Min 8 characters" class="input-field w-full px-4 py-2.5 rounded-lg text-sm">
+                </div>
+                <button type="submit" class="btn-primary w-full py-2.5 rounded-lg text-sm">Create Account</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- App Shell -->
+<div id="appShell" class="hidden h-screen flex">
+    <!-- Sidebar -->
+    <aside class="w-[72px] h-full flex flex-col items-center py-4 glass border-r border-white/5 shrink-0 z-40">
+        <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-brand-500 to-brand-700 flex items-center justify-center mb-6 cursor-pointer" onclick="switchTab('dashboard')">
+            <i data-lucide="building-2" class="w-5 h-5 text-white"></i>
+        </div>
+        <nav class="flex-1 flex flex-col items-center gap-1 w-full">
+            <button onclick="switchTab('dashboard')" data-tab="dashboard" class="sidebar-item tooltip w-full flex items-center justify-center py-3 active" data-tip="Dashboard">
+                <i data-lucide="layout-dashboard" class="w-5 h-5"></i>
+            </button>
+            <button onclick="switchTab('analyze')" data-tab="analyze" class="sidebar-item tooltip w-full flex items-center justify-center py-3" data-tip="Analyze Deal">
+                <i data-lucide="calculator" class="w-5 h-5"></i>
+            </button>
+            <button onclick="switchTab('deals')" data-tab="deals" class="sidebar-item tooltip w-full flex items-center justify-center py-3" data-tip="My Deals">
+                <i data-lucide="folder-open" class="w-5 h-5"></i>
+            </button>
+            <button onclick="switchTab('portfolio')" data-tab="portfolio" class="sidebar-item tooltip w-full flex items-center justify-center py-3" data-tip="Portfolio">
+                <i data-lucide="pie-chart" class="w-5 h-5"></i>
+            </button>
+            <button onclick="switchTab('markets')" data-tab="markets" class="sidebar-item tooltip w-full flex items-center justify-center py-3" data-tip="Markets">
+                <i data-lucide="map-pin" class="w-5 h-5"></i>
+            </button>
+            <button onclick="switchTab('sourcing')" data-tab="sourcing" class="sidebar-item tooltip w-full flex items-center justify-center py-3" data-tip="AI Sourcing">
+                <i data-lucide="radar" class="w-5 h-5"></i>
+            </button>
+            <button onclick="switchTab('financing')" data-tab="financing" class="sidebar-item tooltip w-full flex items-center justify-center py-3" data-tip="Financing">
+                <i data-lucide="landmark" class="w-5 h-5"></i>
+            </button>
+            <button onclick="switchTab('settings')" data-tab="settings" class="sidebar-item tooltip w-full flex items-center justify-center py-3" data-tip="Settings">
+                <i data-lucide="settings" class="w-5 h-5"></i>
+            </button>
+        </nav>
+        <button onclick="handleLogout()" class="tooltip w-full flex items-center justify-center py-3 text-slate-500 hover:text-red-400 transition-colors" data-tip="Sign Out">
+            <i data-lucide="log-out" class="w-5 h-5"></i>
+        </button>
+    </aside>
+
+    <!-- Main -->
+    <main class="flex-1 flex flex-col h-full overflow-hidden">
+        <!-- Header -->
+        <header class="h-14 flex items-center justify-between px-6 border-b border-white/5 shrink-0">
+            <h1 id="pageTitle" class="text-sm font-semibold text-slate-200">Dashboard</h1>
+            <div class="flex items-center gap-3">
+                <div id="userInitials" class="w-8 h-8 rounded-full bg-brand-500/20 text-brand-400 flex items-center justify-center text-xs font-bold cursor-pointer"></div>
+            </div>
+        </header>
+        <!-- Content -->
+        <div class="flex-1 overflow-y-auto p-6" id="mainContent">
+
+            <!-- ==================== DASHBOARD ==================== -->
+            <div id="tab-dashboard" class="tab-content active">
+                <div id="dashKPIs" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6"></div>
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
+                    <div class="lg:col-span-2 glass rounded-xl p-5">
+                        <h3 class="text-sm font-semibold mb-4 text-slate-300">Recent Deals</h3>
+                        <div id="dashDeals" class="space-y-2"></div>
+                    </div>
+                    <div class="glass rounded-xl p-5">
+                        <h3 class="text-sm font-semibold mb-4 text-slate-300 flex items-center gap-2">
+                            <i data-lucide="zap" class="w-4 h-4 text-amber-400"></i> AI Alerts
+                        </h3>
+                        <div id="dashAlerts" class="space-y-3"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ==================== ANALYZE DEAL ==================== -->
+            <div id="tab-analyze" class="tab-content">
+                <div class="grid grid-cols-1 lg:grid-cols-5 gap-6">
+                    <!-- Input Panel -->
+                    <div class="lg:col-span-2 glass rounded-xl p-5 overflow-y-auto max-h-[calc(100vh-120px)]">
+                        <h3 class="text-sm font-semibold mb-4 text-slate-300">Property Details</h3>
+                        <form id="analyzeForm" onsubmit="handleAnalyzeDeal(event)" class="space-y-3">
+                            <div class="grid grid-cols-2 gap-3">
+                                <div class="col-span-2">
+                                    <label class="block text-xs text-slate-400 mb-1">Address</label>
+                                    <input type="text" id="a_address" required class="input-field w-full px-3 py-2 rounded-lg text-sm" placeholder="123 Main St">
+                                </div>
+                                <div>
+                                    <label class="block text-xs text-slate-400 mb-1">City</label>
+                                    <input type="text" id="a_city" required class="input-field w-full px-3 py-2 rounded-lg text-sm" placeholder="Austin">
+                                </div>
+                                <div class="grid grid-cols-2 gap-2">
+                                    <div>
+                                        <label class="block text-xs text-slate-400 mb-1">State</label>
+                                        <input type="text" id="a_state" required maxlength="2" class="input-field w-full px-3 py-2 rounded-lg text-sm" placeholder="TX">
+                                    </div>
+                                    <div>
+                                        <label class="block text-xs text-slate-400 mb-1">ZIP</label>
+                                        <input type="text" id="a_zip" required class="input-field w-full px-3 py-2 rounded-lg text-sm" placeholder="78701">
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="grid grid-cols-2 gap-3">
+                                <div>
+                                    <label class="block text-xs text-slate-400 mb-1">Purchase Price ($)</label>
+                                    <input type="number" id="a_price" required class="input-field w-full px-3 py-2 rounded-lg text-sm" placeholder="250000">
+                                </div>
+                                <div>
+                                    <label class="block text-xs text-slate-400 mb-1">Monthly Rent ($)</label>
+                                    <input type="number" id="a_rent" required class="input-field w-full px-3 py-2 rounded-lg text-sm" placeholder="1800">
+                                </div>
+                            </div>
+                            <div class="grid grid-cols-4 gap-3">
+                                <div>
+                                    <label class="block text-xs text-slate-400 mb-1">Beds</label>
+                                    <input type="number" id="a_beds" class="input-field w-full px-3 py-2 rounded-lg text-sm" value="3">
+                                </div>
+                                <div>
+                                    <label class="block text-xs text-slate-400 mb-1">Baths</label>
+                                    <input type="number" step="0.5" id="a_baths" class="input-field w-full px-3 py-2 rounded-lg text-sm" value="2">
+                                </div>
+                                <div>
+                                    <label class="block text-xs text-slate-400 mb-1">Sqft</label>
+                                    <input type="number" id="a_sqft" class="input-field w-full px-3 py-2 rounded-lg text-sm" placeholder="1500">
+                                </div>
+                                <div>
+                                    <label class="block text-xs text-slate-400 mb-1">Year</label>
+                                    <input type="number" id="a_year" class="input-field w-full px-3 py-2 rounded-lg text-sm" placeholder="2000">
+                                </div>
+                            </div>
+                            <div>
+                                <label class="block text-xs text-slate-400 mb-1">Property Type</label>
+                                <select id="a_proptype" class="input-field w-full px-3 py-2 rounded-lg text-sm">
+                                    <option value="single_family">Single Family</option>
+                                    <option value="multi_family">Multi Family</option>
+                                    <option value="condo">Condo</option>
+                                    <option value="townhouse">Townhouse</option>
+                                </select>
+                            </div>
+                            <hr class="border-white/5 my-2">
+                            <h4 class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Financing &amp; Assumptions</h4>
+                            <div class="grid grid-cols-2 gap-3">
+                                <div>
+                                    <label class="block text-xs text-slate-400 mb-1">Down Payment %</label>
+                                    <input type="number" step="0.01" id="a_dp" class="input-field w-full px-3 py-2 rounded-lg text-sm" value="25">
+                                </div>
+                                <div>
+                                    <label class="block text-xs text-slate-400 mb-1">Interest Rate %</label>
+                                    <input type="number" step="0.01" id="a_rate" class="input-field w-full px-3 py-2 rounded-lg text-sm" value="7">
+                                </div>
+                                <div>
+                                    <label class="block text-xs text-slate-400 mb-1">Vacancy %</label>
+                                    <input type="number" step="0.01" id="a_vacancy" class="input-field w-full px-3 py-2 rounded-lg text-sm" value="8">
+                                </div>
+                                <div>
+                                    <label class="block text-xs text-slate-400 mb-1">Mgmt Fee %</label>
+                                    <input type="number" step="0.01" id="a_mgmt" class="input-field w-full px-3 py-2 rounded-lg text-sm" value="10">
+                                </div>
+                                <div>
+                                    <label class="block text-xs text-slate-400 mb-1">Annual Taxes ($)</label>
+                                    <input type="number" id="a_tax" required class="input-field w-full px-3 py-2 rounded-lg text-sm" placeholder="3000">
+                                </div>
+                                <div>
+                                    <label class="block text-xs text-slate-400 mb-1">Annual Insurance ($)</label>
+                                    <input type="number" id="a_ins" required class="input-field w-full px-3 py-2 rounded-lg text-sm" placeholder="1200">
+                                </div>
+                            </div>
+                            <button type="submit" id="analyzeBtn" class="btn-primary w-full py-3 rounded-lg text-sm mt-2 flex items-center justify-center gap-2">
+                                <i data-lucide="sparkles" class="w-4 h-4"></i> Run AI Analysis
+                            </button>
+                        </form>
+                    </div>
+                    <!-- Results Panel -->
+                    <div class="lg:col-span-3 space-y-4 overflow-y-auto max-h-[calc(100vh-120px)]">
+                        <div id="analyzeEmpty" class="glass rounded-xl p-12 text-center">
+                            <i data-lucide="bar-chart-3" class="w-12 h-12 text-slate-600 mx-auto mb-4"></i>
+                            <p class="text-slate-400 text-sm">Enter property details and run analysis to see results</p>
+                        </div>
+                        <div id="analyzeResults" class="hidden space-y-4 fade-in">
+                            <!-- Score + Key Metrics -->
+                            <div class="grid grid-cols-1 md:grid-cols-5 gap-4">
+                                <div class="glass rounded-xl p-5 flex flex-col items-center justify-center">
+                                    <div class="score-ring mb-2">
+                                        <svg width="90" height="90"><circle cx="45" cy="45" r="38" fill="none" stroke="rgba(255,255,255,0.05)" stroke-width="6"/><circle id="scoreCircle" cx="45" cy="45" r="38" fill="none" stroke="#2b8eff" stroke-width="6" stroke-linecap="round" stroke-dasharray="238.76" stroke-dashoffset="238.76"/></svg>
+                                        <span id="scoreValue" class="absolute text-2xl font-bold">--</span>
+                                    </div>
+                                    <span class="text-xs text-slate-400">Deal Score</span>
+                                </div>
+                                <div class="md:col-span-4 grid grid-cols-2 md:grid-cols-4 gap-3">
+                                    <div class="glass-light rounded-xl p-4 text-center">
+                                        <div id="metricCapRate" class="text-lg font-bold text-brand-400">--</div>
+                                        <div class="text-[10px] text-slate-400 mt-1">Cap Rate</div>
+                                    </div>
+                                    <div class="glass-light rounded-xl p-4 text-center">
+                                        <div id="metricCoC" class="text-lg font-bold text-brand-400">--</div>
+                                        <div class="text-[10px] text-slate-400 mt-1">Cash-on-Cash</div>
+                                    </div>
+                                    <div class="glass-light rounded-xl p-4 text-center">
+                                        <div id="metricDSCR" class="text-lg font-bold text-brand-400">--</div>
+                                        <div class="text-[10px] text-slate-400 mt-1">DSCR</div>
+                                    </div>
+                                    <div class="glass-light rounded-xl p-4 text-center">
+                                        <div id="metricIRR" class="text-lg font-bold text-brand-400">--</div>
+                                        <div class="text-[10px] text-slate-400 mt-1">IRR (10yr)</div>
+                                    </div>
+                                </div>
+                            </div>
+                            <!-- Income / Expense / Investment Summary -->
+                            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                <div class="glass rounded-xl p-5">
+                                    <h4 class="text-xs font-semibold text-slate-400 uppercase mb-3">Income</h4>
+                                    <div id="incomeBreakdown" class="space-y-2 text-sm"></div>
+                                </div>
+                                <div class="glass rounded-xl p-5">
+                                    <h4 class="text-xs font-semibold text-slate-400 uppercase mb-3">Expenses</h4>
+                                    <div id="expenseBreakdown" class="space-y-2 text-sm"></div>
+                                </div>
+                                <div class="glass rounded-xl p-5">
+                                    <h4 class="text-xs font-semibold text-slate-400 uppercase mb-3">Investment Summary</h4>
+                                    <div id="investSummary" class="space-y-2 text-sm"></div>
+                                </div>
+                            </div>
+                            <!-- Pro Forma Chart -->
+                            <div class="glass rounded-xl p-5">
+                                <h4 class="text-xs font-semibold text-slate-400 uppercase mb-4">10-Year Pro Forma</h4>
+                                <div class="h-64"><canvas id="proformaChart"></canvas></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ==================== MY DEALS ==================== -->
+            <div id="tab-deals" class="tab-content">
+                <div id="dealsTableView">
+                    <div class="flex items-center justify-between mb-4">
+                        <h3 class="text-sm font-semibold text-slate-300">All Deals</h3>
+                        <button onclick="switchTab('analyze')" class="btn-secondary text-xs px-3 py-1.5 rounded-lg flex items-center gap-1.5">
+                            <i data-lucide="plus" class="w-3.5 h-3.5"></i> New Deal
+                        </button>
+                    </div>
+                    <div class="glass rounded-xl overflow-hidden">
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-sm">
+                                <thead>
+                                    <tr class="border-b border-white/5">
+                                        <th class="text-left text-xs text-slate-400 font-medium px-4 py-3">Address</th>
+                                        <th class="text-right text-xs text-slate-400 font-medium px-4 py-3">Price</th>
+                                        <th class="text-center text-xs text-slate-400 font-medium px-4 py-3">Score</th>
+                                        <th class="text-right text-xs text-slate-400 font-medium px-4 py-3">Cap Rate</th>
+                                        <th class="text-right text-xs text-slate-400 font-medium px-4 py-3">Cash Flow</th>
+                                        <th class="text-center text-xs text-slate-400 font-medium px-4 py-3">Status</th>
+                                        <th class="text-right text-xs text-slate-400 font-medium px-4 py-3">Date</th>
+                                        <th class="text-center text-xs text-slate-400 font-medium px-4 py-3 w-10"></th>
+                                    </tr>
+                                </thead>
+                                <tbody id="dealsTableBody"></tbody>
+                            </table>
+                        </div>
+                        <div id="dealsEmpty" class="hidden p-12 text-center">
+                            <i data-lucide="folder-open" class="w-10 h-10 text-slate-600 mx-auto mb-3"></i>
+                            <p class="text-slate-400 text-sm">No deals yet. Analyze your first property to get started.</p>
+                        </div>
+                    </div>
+                </div>
+                <!-- Deal Detail -->
+                <div id="dealDetailView" class="hidden fade-in">
+                    <button onclick="closeDealDetail()" class="btn-secondary text-xs px-3 py-1.5 rounded-lg mb-4 flex items-center gap-1.5">
+                        <i data-lucide="arrow-left" class="w-3.5 h-3.5"></i> Back to Deals
+                    </button>
+                    <div id="dealDetailContent"></div>
+                </div>
+            </div>
+
+            <!-- ==================== PORTFOLIO ==================== -->
+            <div id="tab-portfolio" class="tab-content">
+                <div id="portfolioLoading" class="flex justify-center py-20"><div class="spinner"></div></div>
+                <div id="portfolioEmpty" class="hidden glass rounded-xl p-12 text-center fade-in">
+                    <i data-lucide="pie-chart" class="w-12 h-12 text-slate-600 mx-auto mb-4"></i>
+                    <p class="text-slate-400 text-sm mb-4">Create a portfolio to track your investments</p>
+                    <form id="createPortfolioForm" onsubmit="handleCreatePortfolio(event)" class="max-w-sm mx-auto space-y-3">
+                        <input type="text" id="pf_name" required placeholder="Portfolio name" class="input-field w-full px-3 py-2 rounded-lg text-sm">
+                        <input type="text" id="pf_desc" placeholder="Description (optional)" class="input-field w-full px-3 py-2 rounded-lg text-sm">
+                        <button type="submit" class="btn-primary w-full py-2.5 rounded-lg text-sm">Create Portfolio</button>
+                    </form>
+                </div>
+                <div id="portfolioContent" class="hidden fade-in">
+                    <div id="portfolioKPIs" class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6"></div>
+                    <div class="glass rounded-xl p-5">
+                        <h4 class="text-xs font-semibold text-slate-400 uppercase mb-4">Income vs Expenses</h4>
+                        <div class="h-64"><canvas id="portfolioChart"></canvas></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ==================== MARKETS ==================== -->
+            <div id="tab-markets" class="tab-content">
+                <div class="grid grid-cols-1 lg:grid-cols-5 gap-6">
+                    <div class="lg:col-span-3">
+                        <h3 class="text-sm font-semibold text-slate-300 mb-4">Top Markets</h3>
+                        <div id="marketsLoading" class="flex justify-center py-12"><div class="spinner"></div></div>
+                        <div id="marketsList" class="space-y-2"></div>
+                    </div>
+                    <div class="lg:col-span-2">
+                        <div id="marketDetailEmpty" class="glass rounded-xl p-10 text-center">
+                            <i data-lucide="map-pin" class="w-10 h-10 text-slate-600 mx-auto mb-3"></i>
+                            <p class="text-slate-400 text-sm">Select a market to view details</p>
+                        </div>
+                        <div id="marketDetail" class="hidden space-y-4 fade-in">
+                            <div class="glass rounded-xl p-5">
+                                <h4 id="marketDetailName" class="text-sm font-semibold text-slate-200 mb-1"></h4>
+                                <div id="marketGrade" class="text-xs text-slate-400 mb-4"></div>
+                                <div id="marketScores" class="space-y-2"></div>
+                            </div>
+                            <div class="glass rounded-xl p-5">
+                                <h4 class="text-xs font-semibold text-slate-400 uppercase mb-4">12-Month Forecast</h4>
+                                <div class="h-48"><canvas id="marketForecastChart"></canvas></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ==================== AI SOURCING ==================== -->
+            <div id="tab-sourcing" class="tab-content">
+                <div id="sourcingStats" class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6"></div>
+                <!-- Filters -->
+                <div class="flex flex-wrap items-center gap-3 mb-4">
+                    <div class="flex items-center gap-2 text-xs text-slate-400">
+                        <label>Min Motivation:</label>
+                        <input type="range" id="srcMotivation" min="0" max="100" value="0" class="w-32 accent-brand-500" oninput="document.getElementById('srcMotVal').textContent=this.value">
+                        <span id="srcMotVal" class="text-brand-400 font-semibold w-6">0</span>
+                    </div>
+                    <select id="srcSignalType" class="input-field px-3 py-1.5 rounded-lg text-xs" onchange="filterSourceLeads()">
+                        <option value="">All Signals</option>
+                    </select>
+                    <select id="srcState" class="input-field px-3 py-1.5 rounded-lg text-xs" onchange="filterSourceLeads()">
+                        <option value="">All States</option>
+                    </select>
+                    <button onclick="filterSourceLeads()" class="btn-secondary text-xs px-3 py-1.5 rounded-lg">Apply</button>
+                </div>
+                <div id="sourcingLoading" class="flex justify-center py-12"><div class="spinner"></div></div>
+                <div id="sourcingLeads" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"></div>
+                <div id="sourcingEmpty" class="hidden glass rounded-xl p-12 text-center">
+                    <i data-lucide="radar" class="w-10 h-10 text-slate-600 mx-auto mb-3"></i>
+                    <p class="text-slate-400 text-sm">No leads found matching your criteria</p>
+                </div>
+            </div>
+
+            <!-- ==================== FINANCING ==================== -->
+            <div id="tab-financing" class="tab-content">
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                    <div class="glass rounded-xl p-5">
+                        <h3 class="text-sm font-semibold text-slate-300 mb-4">Quick Quote</h3>
+                        <form id="quoteForm" onsubmit="handleQuickQuote(event)" class="space-y-3">
+                            <div>
+                                <label class="block text-xs text-slate-400 mb-1">Property Value ($)</label>
+                                <input type="number" id="fq_value" required class="input-field w-full px-3 py-2 rounded-lg text-sm" placeholder="300000">
+                            </div>
+                            <div>
+                                <label class="block text-xs text-slate-400 mb-1">Down Payment %</label>
+                                <input type="number" step="0.01" id="fq_dp" class="input-field w-full px-3 py-2 rounded-lg text-sm" value="25">
+                            </div>
+                            <div>
+                                <label class="block text-xs text-slate-400 mb-1">Credit Score</label>
+                                <input type="number" id="fq_credit" required class="input-field w-full px-3 py-2 rounded-lg text-sm" placeholder="740">
+                            </div>
+                            <div>
+                                <label class="block text-xs text-slate-400 mb-1">Property Type</label>
+                                <select id="fq_type" class="input-field w-full px-3 py-2 rounded-lg text-sm">
+                                    <option value="single_family">Single Family</option>
+                                    <option value="multi_family">Multi Family</option>
+                                    <option value="condo">Condo</option>
+                                    <option value="townhouse">Townhouse</option>
+                                </select>
+                            </div>
+                            <button type="submit" class="btn-primary w-full py-2.5 rounded-lg text-sm">Get Quotes</button>
+                        </form>
+                    </div>
+                    <div class="lg:col-span-2 space-y-4">
+                        <div id="quoteResults" class="hidden glass rounded-xl overflow-hidden fade-in">
+                            <h3 class="text-sm font-semibold text-slate-300 p-4 pb-2">Loan Quotes</h3>
+                            <div class="overflow-x-auto">
+                                <table class="w-full text-sm">
+                                    <thead>
+                                        <tr class="border-b border-white/5">
+                                            <th class="text-left text-xs text-slate-400 font-medium px-4 py-2">Lender</th>
+                                            <th class="text-left text-xs text-slate-400 font-medium px-4 py-2">Product</th>
+                                            <th class="text-left text-xs text-slate-400 font-medium px-4 py-2">Type</th>
+                                            <th class="text-right text-xs text-slate-400 font-medium px-4 py-2">Rate</th>
+                                            <th class="text-right text-xs text-slate-400 font-medium px-4 py-2">Monthly</th>
+                                            <th class="text-center text-xs text-slate-400 font-medium px-4 py-2">Eligible</th>
+                                            <th class="text-left text-xs text-slate-400 font-medium px-4 py-2">Notes</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="quoteTableBody"></tbody>
+                                </table>
+                            </div>
+                        </div>
+                        <div class="glass rounded-xl p-5">
+                            <h3 class="text-sm font-semibold text-slate-300 mb-4">Lender Directory</h3>
+                            <div id="lenderDirectory" class="space-y-3"></div>
+                            <div id="lenderLoading" class="flex justify-center py-8"><div class="spinner"></div></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ==================== SETTINGS ==================== -->
+            <div id="tab-settings" class="tab-content">
+                <div class="max-w-lg">
+                    <div class="glass rounded-xl p-6">
+                        <h3 class="text-sm font-semibold text-slate-300 mb-4">Account</h3>
+                        <div id="settingsProfile" class="space-y-3 text-sm"></div>
+                        <hr class="border-white/5 my-5">
+                        <button onclick="handleLogout()" class="text-red-400 text-sm hover:text-red-300 transition-colors">Sign out</button>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </main>
+</div>
+
+<script>
+// ======================== CONFIG ========================
+const API = (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
+    ? 'http://localhost:8000/api/v1'
+    : window.location.origin + '/api/v1';
+let token = localStorage.getItem('reios_token');
+let currentUser = null;
+let allSourceLeads = [];
+let charts = {};
+
+// ======================== HELPERS ========================
+function $(id) { return document.getElementById(id); }
+function fmt(n) { return n == null ? '--' : Number(n).toLocaleString('en-US', { maximumFractionDigits: 0 }); }
+function fmtCurrency(n) { return n == null ? '--' : '$' + fmt(n); }
+function fmtPct(n, d=1) { return n == null ? '--' : (Number(n) * (n > 1 ? 1 : 100)).toFixed(d) + '%'; }
+function fmtPctRaw(n, d=1) { return n == null ? '--' : Number(n).toFixed(d) + '%'; }
+function showEl(id) { $(id) && ($(id).classList.remove('hidden')); }
+function hideEl(id) { $(id) && ($(id).classList.add('hidden')); }
+
+async function apiFetch(path, opts = {}) {
+    const headers = { 'Content-Type': 'application/json', ...(opts.headers || {}) };
+    if (token) headers['Authorization'] = `Bearer ${token}`;
+    const res = await fetch(API + path, { ...opts, headers });
+    if (res.status === 401) { handleLogout(); throw new Error('Unauthorized'); }
+    if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.detail || err.message || `HTTP ${res.status}`);
+    }
+    if (res.status === 204) return null;
+    return res.json();
+}
+
+function spinner() { return '<div class="flex justify-center py-8"><div class="spinner"></div></div>'; }
+function emptyState(icon, msg) { return `<div class="text-center py-8"><i data-lucide="${icon}" class="w-8 h-8 text-slate-600 mx-auto mb-2"></i><p class="text-slate-500 text-xs">${msg}</p></div>`; }
+function statusBadge(s) {
+    const m = { draft:'gray', scored:'blue', analyzed:'blue', offer_sent:'amber', closed:'emerald', rejected:'red' };
+    return `<span class="badge badge-${m[s]||'gray'}">${(s||'draft').replace('_',' ')}</span>`;
+}
+function scoreColor(s) { return s >= 75 ? '#34d399' : s >= 50 ? '#fbbf24' : s >= 25 ? '#fb923c' : '#f87171'; }
+function refreshIcons() { if(window.lucide) lucide.createIcons(); }
+
+// ======================== AUTH ========================
+function showAuthTab(tab) {
+    if (tab === 'login') {
+        showEl('loginForm'); hideEl('registerForm');
+        $('loginTab').classList.add('bg-brand-500/10','text-brand-400'); $('loginTab').classList.remove('text-slate-400');
+        $('registerTab').classList.remove('bg-brand-500/10','text-brand-400'); $('registerTab').classList.add('text-slate-400');
+    } else {
+        hideEl('loginForm'); showEl('registerForm');
+        $('registerTab').classList.add('bg-brand-500/10','text-brand-400'); $('registerTab').classList.remove('text-slate-400');
+        $('loginTab').classList.remove('bg-brand-500/10','text-brand-400'); $('loginTab').classList.add('text-slate-400');
+    }
+    hideEl('authError');
+}
+function showAuthError(msg) { $('authError').textContent = msg; showEl('authError'); }
+
+async function handleLogin(e) {
+    e.preventDefault();
+    hideEl('authError');
+    try {
+        const data = await apiFetch('/auth/login', { method:'POST', body: JSON.stringify({ email: $('loginEmail').value, password: $('loginPassword').value }) });
+        token = data.access_token;
+        localStorage.setItem('reios_token', token);
+        await initApp();
+    } catch(err) { showAuthError(err.message); }
+}
+
+async function handleRegister(e) {
+    e.preventDefault();
+    hideEl('authError');
+    try {
+        await apiFetch('/auth/register', { method:'POST', body: JSON.stringify({ email: $('regEmail').value, password: $('regPassword').value, full_name: $('regName').value }) });
+        // Auto login after register
+        const data = await apiFetch('/auth/login', { method:'POST', body: JSON.stringify({ email: $('regEmail').value, password: $('regPassword').value }) });
+        token = data.access_token;
+        localStorage.setItem('reios_token', token);
+        await initApp();
+    } catch(err) { showAuthError(err.message); }
+}
+
+function handleLogout() {
+    token = null;
+    currentUser = null;
+    localStorage.removeItem('reios_token');
+    hideEl('appShell');
+    showEl('authModal');
+    $('loginEmail').value = ''; $('loginPassword').value = '';
+}
+
+// ======================== INIT ========================
+async function initApp() {
+    try {
+        currentUser = await apiFetch('/auth/me');
+        const initials = (currentUser.full_name || currentUser.email || '?').split(' ').map(w=>w[0]).join('').toUpperCase().slice(0,2);
+        $('userInitials').textContent = initials;
+        hideEl('authModal');
+        showEl('appShell');
+        $('settingsProfile').innerHTML = `
+            <div class="flex items-center justify-between"><span class="text-slate-400">Name</span><span>${currentUser.full_name||'--'}</span></div>
+            <div class="flex items-center justify-between"><span class="text-slate-400">Email</span><span>${currentUser.email||'--'}</span></div>
+        `;
+        refreshIcons();
+        loadDashboard();
+    } catch(err) {
+        handleLogout();
+    }
+}
+
+// ======================== NAVIGATION ========================
+const titles = { dashboard:'Dashboard', analyze:'Analyze Deal', deals:'My Deals', portfolio:'Portfolio', markets:'Markets', sourcing:'AI Sourcing', financing:'Financing', settings:'Settings' };
+function switchTab(tab) {
+    document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+    document.querySelectorAll('.sidebar-item').forEach(s => s.classList.remove('active'));
+    const el = $('tab-' + tab);
+    if (el) el.classList.add('active');
+    const btn = document.querySelector(`[data-tab="${tab}"]`);
+    if (btn) btn.classList.add('active');
+    $('pageTitle').textContent = titles[tab] || tab;
+
+    // Load data for tab
+    if (tab === 'dashboard') loadDashboard();
+    else if (tab === 'deals') loadDeals();
+    else if (tab === 'portfolio') loadPortfolio();
+    else if (tab === 'markets') loadMarkets();
+    else if (tab === 'sourcing') loadSourcing();
+    else if (tab === 'financing') loadFinancing();
+    refreshIcons();
+}
+
+// ======================== DASHBOARD ========================
+async function loadDashboard() {
+    // KPIs from portfolio
+    $('dashKPIs').innerHTML = '';
+    try {
+        const portfolios = await apiFetch('/portfolios');
+        if (portfolios && portfolios.length > 0) {
+            const summary = await apiFetch(`/portfolios/${portfolios[0].id}/summary`);
+            const kpis = [
+                { label: 'Total Properties', value: summary.total_properties || 0, icon: 'home', color: 'text-brand-400' },
+                { label: 'Portfolio Value', value: fmtCurrency(summary.total_value), icon: 'trending-up', color: 'text-emerald-400' },
+                { label: 'Monthly Cash Flow', value: fmtCurrency(summary.monthly_cash_flow), icon: 'dollar-sign', color: summary.monthly_cash_flow >= 0 ? 'text-emerald-400' : 'text-red-400' },
+                { label: 'Portfolio LTV', value: fmtPctRaw((summary.portfolio_ltv||0)*100, 1), icon: 'percent', color: 'text-amber-400' },
+            ];
+            $('dashKPIs').innerHTML = kpis.map(k => `
+                <div class="glass rounded-xl p-4 flex items-center gap-3">
+                    <div class="w-10 h-10 rounded-lg bg-brand-500/10 flex items-center justify-center shrink-0"><i data-lucide="${k.icon}" class="w-5 h-5 text-brand-400"></i></div>
+                    <div><div class="${k.color} text-lg font-bold">${k.value}</div><div class="text-[10px] text-slate-400">${k.label}</div></div>
+                </div>`).join('');
+        } else {
+            $('dashKPIs').innerHTML = `
+                <div class="col-span-full glass rounded-xl p-6 text-center">
+                    <p class="text-slate-400 text-sm mb-2">No portfolio yet</p>
+                    <button onclick="switchTab('portfolio')" class="btn-secondary text-xs px-4 py-2 rounded-lg">Create Portfolio</button>
+                </div>`;
+        }
+    } catch(e) {
+        $('dashKPIs').innerHTML = `<div class="col-span-full glass rounded-xl p-4 text-center text-slate-500 text-sm">Unable to load portfolio data</div>`;
+    }
+
+    // Recent Deals
+    $('dashDeals').innerHTML = spinner();
+    try {
+        const deals = await apiFetch('/deals');
+        if (deals && deals.length > 0) {
+            $('dashDeals').innerHTML = deals.slice(0, 5).map(d => {
+                const a = d.latest_analysis || {};
+                const score = a.ai_score != null ? a.ai_score : null;
+                const cf = a.monthly_cash_flow;
+                return `<div class="flex items-center justify-between p-3 rounded-lg glass-light glass-hover cursor-pointer" onclick="switchTab('deals')">
+                    <div class="flex items-center gap-3">
+                        ${score != null ? `<div class="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold" style="background:${scoreColor(score)}20;color:${scoreColor(score)}">${Math.round(score)}</div>` : '<div class="w-8 h-8 rounded-full bg-slate-700/50 flex items-center justify-center text-xs text-slate-500">--</div>'}
+                        <div>
+                            <div class="text-sm font-medium">${d.address || '--'}</div>
+                            <div class="text-[10px] text-slate-400">${d.city||''}, ${d.state||''}</div>
+                        </div>
+                    </div>
+                    <div class="text-right">
+                        <div class="text-sm font-medium">${fmtCurrency(d.purchase_price)}</div>
+                        <div class="text-[10px] ${cf >= 0 ? 'text-emerald-400' : 'text-red-400'}">${cf != null ? fmtCurrency(cf)+'/mo' : '--'}</div>
+                    </div>
+                </div>`;
+            }).join('');
+        } else {
+            $('dashDeals').innerHTML = emptyState('folder-open', 'No deals yet. Analyze your first property.');
+        }
+    } catch(e) { $('dashDeals').innerHTML = emptyState('alert-circle', 'Could not load deals'); }
+
+    // AI Alerts
+    $('dashAlerts').innerHTML = spinner();
+    try {
+        const leads = await apiFetch('/sourcing/leads?min_motivation=75&limit=3');
+        if (leads && leads.length > 0) {
+            $('dashAlerts').innerHTML = leads.map(l => `
+                <div class="p-3 rounded-lg glass-light text-xs">
+                    <div class="flex items-center gap-2 mb-1">
+                        <span class="badge badge-amber">${(l.signals && l.signals[0]) || 'Lead'}</span>
+                        <span class="text-emerald-400 font-semibold">${l.estimated_discount ? Math.round(l.estimated_discount*100)+'% discount' : ''}</span>
+                    </div>
+                    <div class="font-medium text-sm">${l.address || '--'}</div>
+                    <div class="text-slate-400">${l.city||''}, ${l.state||''} &middot; ${fmtCurrency(l.potential_deal_price || l.estimated_value)}</div>
+                </div>`).join('');
+        } else {
+            $('dashAlerts').innerHTML = emptyState('radar', 'No high-motivation leads right now');
+        }
+    } catch(e) { $('dashAlerts').innerHTML = emptyState('radar', 'Could not load sourcing leads'); }
+
+    refreshIcons();
+}
+
+// ======================== ANALYZE DEAL ========================
+let lastAnalyzedDealId = null;
+
+async function handleAnalyzeDeal(e) {
+    e.preventDefault();
+    const btn = $('analyzeBtn');
+    btn.disabled = true;
+    btn.innerHTML = '<div class="spinner" style="width:18px;height:18px;border-width:2px"></div> Analyzing...';
+    hideEl('analyzeEmpty');
+    hideEl('analyzeResults');
+
+    try {
+        // 1. Create deal
+        const deal = await apiFetch('/deals', { method: 'POST', body: JSON.stringify({
+            purchase_price: +$('a_price').value,
+            address: $('a_address').value,
+            city: $('a_city').value,
+            state: $('a_state').value,
+            zip_code: $('a_zip').value,
+            property_type: $('a_proptype').value,
+            bedrooms: +$('a_beds').value || null,
+            bathrooms: +$('a_baths').value || null,
+            sqft: +$('a_sqft').value || null,
+            year_built: +$('a_year').value || null,
+        })});
+        lastAnalyzedDealId = deal.id;
+
+        // 2. Run analysis
+        const analysis = await apiFetch(`/deals/${deal.id}/analyze`, { method: 'POST', body: JSON.stringify({
+            monthly_rent: +$('a_rent').value,
+            vacancy_rate: (+$('a_vacancy').value) / 100,
+            management_fee_pct: (+$('a_mgmt').value) / 100,
+            property_tax_annual: +$('a_tax').value,
+            insurance_annual: +$('a_ins').value,
+            down_payment_pct: (+$('a_dp').value) / 100,
+            interest_rate: (+$('a_rate').value) / 100,
+            loan_term_years: 30,
+            closing_cost_pct: 0.03,
+            annual_rent_growth: 0.03,
+            annual_appreciation: 0.03,
+        })});
+
+        // 3. Get proforma
+        let proforma = [];
+        try { proforma = await apiFetch(`/deals/${deal.id}/proforma?years=10`); } catch(e) {}
+
+        renderAnalysisResults(analysis, proforma);
+    } catch(err) {
+        showEl('analyzeEmpty');
+        $('analyzeEmpty').innerHTML = `<div class="text-red-400 text-sm p-6"><i data-lucide="alert-circle" class="w-6 h-6 mx-auto mb-2"></i>${err.message}</div>`;
+        refreshIcons();
+    } finally {
+        btn.disabled = false;
+        btn.innerHTML = '<i data-lucide="sparkles" class="w-4 h-4"></i> Run AI Analysis';
+        refreshIcons();
+    }
+}
+
+function renderAnalysisResults(a, proforma) {
+    showEl('analyzeResults');
+    // Score ring
+    const score = a.ai_score != null ? Math.round(a.ai_score) : 0;
+    const circ = 238.76;
+    const offset = circ - (circ * score / 100);
+    const sc = $('scoreCircle');
+    sc.style.stroke = scoreColor(score);
+    sc.style.strokeDashoffset = offset;
+    sc.style.transition = 'stroke-dashoffset 1s ease-out';
+    $('scoreValue').textContent = score;
+    $('scoreValue').style.color = scoreColor(score);
+
+    // Key metrics
+    $('metricCapRate').textContent = a.cap_rate != null ? (a.cap_rate * 100).toFixed(2) + '%' : '--';
+    $('metricCoC').textContent = a.cash_on_cash_return != null ? (a.cash_on_cash_return * 100).toFixed(2) + '%' : '--';
+    $('metricDSCR').textContent = a.dscr != null ? a.dscr.toFixed(2) : '--';
+    $('metricIRR').textContent = a.irr != null ? (a.irr * 100).toFixed(2) + '%' : (a.ten_year_irr != null ? (a.ten_year_irr * 100).toFixed(2) + '%' : '--');
+
+    // Income breakdown
+    const rent = +$('a_rent').value;
+    const vacLoss = rent * (+$('a_vacancy').value/100);
+    $('incomeBreakdown').innerHTML = `
+        <div class="flex justify-between"><span class="text-slate-400">Gross Rent</span><span class="text-emerald-400">${fmtCurrency(rent)}/mo</span></div>
+        <div class="flex justify-between"><span class="text-slate-400">Vacancy Loss</span><span class="text-red-400">-${fmtCurrency(vacLoss)}/mo</span></div>
+        <div class="flex justify-between border-t border-white/5 pt-2 font-medium"><span>Effective Income</span><span class="text-emerald-400">${fmtCurrency(rent - vacLoss)}/mo</span></div>
+    `;
+
+    // Expense breakdown
+    const tax = +$('a_tax').value/12;
+    const ins = +$('a_ins').value/12;
+    const mgmt = rent * (+$('a_mgmt').value/100);
+    const debtSvc = a.annual_debt_service ? a.annual_debt_service/12 : (a.monthly_debt_service || 0);
+    $('expenseBreakdown').innerHTML = `
+        <div class="flex justify-between"><span class="text-slate-400">Property Tax</span><span>${fmtCurrency(tax)}/mo</span></div>
+        <div class="flex justify-between"><span class="text-slate-400">Insurance</span><span>${fmtCurrency(ins)}/mo</span></div>
+        <div class="flex justify-between"><span class="text-slate-400">Management</span><span>${fmtCurrency(mgmt)}/mo</span></div>
+        <div class="flex justify-between"><span class="text-slate-400">Debt Service</span><span>${fmtCurrency(debtSvc)}/mo</span></div>
+        <div class="flex justify-between border-t border-white/5 pt-2 font-medium"><span>Total Expenses</span><span class="text-red-400">${fmtCurrency(tax+ins+mgmt+debtSvc)}/mo</span></div>
+    `;
+
+    // Investment summary
+    const price = +$('a_price').value;
+    const dp = price * (+$('a_dp').value/100);
+    const closing = price * 0.03;
+    $('investSummary').innerHTML = `
+        <div class="flex justify-between"><span class="text-slate-400">Purchase Price</span><span>${fmtCurrency(price)}</span></div>
+        <div class="flex justify-between"><span class="text-slate-400">Down Payment</span><span>${fmtCurrency(dp)}</span></div>
+        <div class="flex justify-between"><span class="text-slate-400">Closing Costs</span><span>${fmtCurrency(closing)}</span></div>
+        <div class="flex justify-between border-t border-white/5 pt-2 font-medium"><span>Total Cash In</span><span class="text-brand-400">${fmtCurrency(dp + closing)}</span></div>
+        <div class="flex justify-between"><span class="text-slate-400">Monthly Cash Flow</span><span class="${a.monthly_cash_flow >= 0 ? 'text-emerald-400':'text-red-400'}">${fmtCurrency(a.monthly_cash_flow)}</span></div>
+        <div class="flex justify-between"><span class="text-slate-400">Annual NOI</span><span>${fmtCurrency(a.noi)}</span></div>
+    `;
+
+    // Pro forma chart
+    if (proforma && proforma.length > 0) {
+        renderProformaChart(proforma);
+    }
+    refreshIcons();
+}
+
+function renderProformaChart(data) {
+    if (charts.proforma) charts.proforma.destroy();
+    charts.proforma = new Chart($('proformaChart'), {
+        type: 'bar',
+        data: {
+            labels: data.map(d => 'Year ' + d.year),
+            datasets: [
+                { label: 'Cash Flow', data: data.map(d => d.cash_flow), backgroundColor: 'rgba(43,142,255,0.6)', borderRadius: 4, order: 2 },
+                { label: 'Equity', data: data.map(d => d.equity), type: 'line', borderColor: '#34d399', backgroundColor: 'transparent', borderWidth: 2, pointRadius: 3, pointBackgroundColor: '#34d399', order: 1 },
+            ]
+        },
+        options: {
+            responsive: true, maintainAspectRatio: false,
+            plugins: { legend: { labels: { color: '#94a3b8', font: { size: 10 } } } },
+            scales: {
+                x: { ticks: { color: '#475569', font: { size: 9 } }, grid: { color: 'rgba(255,255,255,0.03)' } },
+                y: { ticks: { color: '#475569', font: { size: 9 }, callback: v => '$'+fmt(v) }, grid: { color: 'rgba(255,255,255,0.03)' } },
+            }
+        }
+    });
+}
+
+// ======================== MY DEALS ========================
+async function loadDeals() {
+    hideEl('dealDetailView');
+    showEl('dealsTableView');
+    $('dealsTableBody').innerHTML = `<tr><td colspan="8">${spinner()}</td></tr>`;
+    hideEl('dealsEmpty');
+    try {
+        const deals = await apiFetch('/deals');
+        if (!deals || deals.length === 0) {
+            $('dealsTableBody').innerHTML = '';
+            showEl('dealsEmpty');
+            refreshIcons();
+            return;
+        }
+        $('dealsTableBody').innerHTML = deals.map(d => {
+            const a = d.latest_analysis || {};
+            const score = a.ai_score;
+            const capRate = a.cap_rate != null ? (a.cap_rate*100).toFixed(1)+'%' : '--';
+            const cf = a.monthly_cash_flow;
+            return `<tr class="table-row border-b border-white/3 cursor-pointer" onclick="viewDealDetail('${d.id}')">
+                <td class="px-4 py-3 font-medium">${d.address||'--'}<div class="text-[10px] text-slate-400">${d.city||''}, ${d.state||''}</div></td>
+                <td class="px-4 py-3 text-right">${fmtCurrency(d.purchase_price)}</td>
+                <td class="px-4 py-3 text-center">${score!=null ? `<span class="font-bold" style="color:${scoreColor(score)}">${Math.round(score)}</span>` : '<span class="text-slate-500">--</span>'}</td>
+                <td class="px-4 py-3 text-right">${capRate}</td>
+                <td class="px-4 py-3 text-right ${cf!=null?(cf>=0?'text-emerald-400':'text-red-400'):'text-slate-500'}">${cf!=null?fmtCurrency(cf)+'/mo':'--'}</td>
+                <td class="px-4 py-3 text-center">${statusBadge(d.status)}</td>
+                <td class="px-4 py-3 text-right text-slate-400 text-xs">${d.created_at ? new Date(d.created_at).toLocaleDateString() : '--'}</td>
+                <td class="px-4 py-3 text-center"><button onclick="event.stopPropagation();deleteDeal('${d.id}')" class="text-slate-500 hover:text-red-400 transition-colors"><i data-lucide="trash-2" class="w-4 h-4"></i></button></td>
+            </tr>`;
+        }).join('');
+    } catch(e) { $('dealsTableBody').innerHTML = `<tr><td colspan="8" class="text-center text-red-400 text-sm py-6">${e.message}</td></tr>`; }
+    refreshIcons();
+}
+
+async function deleteDeal(id) {
+    if (!confirm('Delete this deal?')) return;
+    try { await apiFetch(`/deals/${id}`, { method:'DELETE' }); loadDeals(); } catch(e) { alert(e.message); }
+}
+
+async function viewDealDetail(id) {
+    hideEl('dealsTableView');
+    showEl('dealDetailView');
+    $('dealDetailContent').innerHTML = spinner();
+    try {
+        const d = await apiFetch(`/deals/${id}`);
+        const a = d.latest_analysis || d.analysis || {};
+        let proformaHtml = '';
+        try {
+            const pf = await apiFetch(`/deals/${id}/proforma?years=10`);
+            if (pf && pf.length) {
+                proformaHtml = `<div class="glass rounded-xl p-5 mt-4"><h4 class="text-xs font-semibold text-slate-400 uppercase mb-4">Pro Forma</h4><div class="h-48"><canvas id="dealDetailChart"></canvas></div></div>`;
+                setTimeout(() => {
+                    if (charts.dealDetail) charts.dealDetail.destroy();
+                    const canvas = $('dealDetailChart');
+                    if (canvas) {
+                        charts.dealDetail = new Chart(canvas, {
+                            type: 'line',
+                            data: { labels: pf.map(r=>'Y'+r.year), datasets: [
+                                { label:'Cash Flow', data:pf.map(r=>r.cash_flow), borderColor:'#2b8eff', backgroundColor:'rgba(43,142,255,0.1)', fill:true, tension:0.3 },
+                                { label:'Property Value', data:pf.map(r=>r.property_value), borderColor:'#34d399', borderDash:[4,4], tension:0.3 },
+                            ]},
+                            options: { responsive:true, maintainAspectRatio:false, plugins:{ legend:{ labels:{color:'#94a3b8',font:{size:10}} } }, scales:{ x:{ticks:{color:'#475569',font:{size:9}},grid:{color:'rgba(255,255,255,0.03)'}}, y:{ticks:{color:'#475569',font:{size:9},callback:v=>'$'+fmt(v)},grid:{color:'rgba(255,255,255,0.03)'}} } }
+                        });
+                    }
+                }, 100);
+            }
+        } catch(e) {}
+
+        const score = a.ai_score;
+        $('dealDetailContent').innerHTML = `
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div class="glass rounded-xl p-5 md:col-span-2">
+                    <div class="flex items-center gap-4 mb-4">
+                        ${score!=null ? `<div class="w-14 h-14 rounded-xl flex items-center justify-center text-xl font-bold" style="background:${scoreColor(score)}15;color:${scoreColor(score)}">${Math.round(score)}</div>` : ''}
+                        <div>
+                            <h3 class="text-lg font-bold">${d.address||'--'}</h3>
+                            <p class="text-sm text-slate-400">${d.city||''}, ${d.state||''} ${d.zip_code||''}</p>
+                        </div>
+                        <div class="ml-auto">${statusBadge(d.status)}</div>
+                    </div>
+                    <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 text-sm">
+                        <div><span class="text-slate-400 text-xs block">Price</span><span class="font-medium">${fmtCurrency(d.purchase_price)}</span></div>
+                        <div><span class="text-slate-400 text-xs block">Type</span><span class="font-medium">${(d.property_type||'--').replace('_',' ')}</span></div>
+                        <div><span class="text-slate-400 text-xs block">Beds/Baths</span><span class="font-medium">${d.bedrooms||'--'}/${d.bathrooms||'--'}</span></div>
+                        <div><span class="text-slate-400 text-xs block">Sqft</span><span class="font-medium">${fmt(d.sqft)}</span></div>
+                    </div>
+                </div>
+                <div class="glass rounded-xl p-5">
+                    <h4 class="text-xs font-semibold text-slate-400 uppercase mb-3">Key Metrics</h4>
+                    <div class="space-y-2 text-sm">
+                        <div class="flex justify-between"><span class="text-slate-400">Cap Rate</span><span>${a.cap_rate!=null?(a.cap_rate*100).toFixed(2)+'%':'--'}</span></div>
+                        <div class="flex justify-between"><span class="text-slate-400">CoC Return</span><span>${a.cash_on_cash_return!=null?(a.cash_on_cash_return*100).toFixed(2)+'%':'--'}</span></div>
+                        <div class="flex justify-between"><span class="text-slate-400">DSCR</span><span>${a.dscr!=null?a.dscr.toFixed(2):'--'}</span></div>
+                        <div class="flex justify-between"><span class="text-slate-400">NOI</span><span>${fmtCurrency(a.noi)}</span></div>
+                        <div class="flex justify-between"><span class="text-slate-400">Cash Flow</span><span class="${a.monthly_cash_flow>=0?'text-emerald-400':'text-red-400'}">${fmtCurrency(a.monthly_cash_flow)}/mo</span></div>
+                    </div>
+                </div>
+            </div>
+            ${proformaHtml}
+        `;
+    } catch(e) { $('dealDetailContent').innerHTML = `<div class="text-red-400 text-sm p-6">${e.message}</div>`; }
+    refreshIcons();
+}
+
+function closeDealDetail() { hideEl('dealDetailView'); showEl('dealsTableView'); }
+
+// ======================== PORTFOLIO ========================
+async function loadPortfolio() {
+    showEl('portfolioLoading'); hideEl('portfolioEmpty'); hideEl('portfolioContent');
+    try {
+        const portfolios = await apiFetch('/portfolios');
+        hideEl('portfolioLoading');
+        if (!portfolios || portfolios.length === 0) {
+            showEl('portfolioEmpty');
+            refreshIcons();
+            return;
+        }
+        const pf = portfolios[0];
+        const summary = await apiFetch(`/portfolios/${pf.id}/summary`);
+        showEl('portfolioContent');
+        const kpis = [
+            { label:'Properties', value: summary.total_properties||0, icon:'home' },
+            { label:'Total Value', value: fmtCurrency(summary.total_value), icon:'trending-up' },
+            { label:'Total Equity', value: fmtCurrency(summary.total_equity), icon:'wallet' },
+            { label:'Annual Cash Flow', value: fmtCurrency(summary.annual_cash_flow), icon:'dollar-sign' },
+        ];
+        $('portfolioKPIs').innerHTML = kpis.map(k => `
+            <div class="glass rounded-xl p-4 flex items-center gap-3">
+                <div class="w-10 h-10 rounded-lg bg-brand-500/10 flex items-center justify-center shrink-0"><i data-lucide="${k.icon}" class="w-5 h-5 text-brand-400"></i></div>
+                <div><div class="text-lg font-bold">${k.value}</div><div class="text-[10px] text-slate-400">${k.label}</div></div>
+            </div>`).join('');
+
+        // Chart
+        const income = summary.annual_cash_flow || 0;
+        const debt = summary.total_debt || 0;
+        const equity = summary.total_equity || 0;
+        if (charts.portfolio) charts.portfolio.destroy();
+        charts.portfolio = new Chart($('portfolioChart'), {
+            type: 'bar',
+            data: {
+                labels: ['Income', 'Debt Service', 'Net Cash Flow'],
+                datasets: [{
+                    data: [Math.abs(income + debt * 0.07 / 12 * 12), debt * 0.07, income],
+                    backgroundColor: ['rgba(43,142,255,0.6)', 'rgba(239,68,68,0.5)', income >= 0 ? 'rgba(52,211,153,0.6)' : 'rgba(239,68,68,0.6)'],
+                    borderRadius: 6,
+                }]
+            },
+            options: {
+                responsive: true, maintainAspectRatio: false,
+                plugins: { legend: { display: false } },
+                scales: {
+                    x: { ticks: { color:'#94a3b8', font:{ size:10 } }, grid: { color:'rgba(255,255,255,0.03)' } },
+                    y: { ticks: { color:'#475569', font:{ size:9 }, callback: v=>'$'+fmt(v) }, grid: { color:'rgba(255,255,255,0.03)' } },
+                }
+            }
+        });
+    } catch(e) {
+        hideEl('portfolioLoading');
+        showEl('portfolioEmpty');
+    }
+    refreshIcons();
+}
+
+async function handleCreatePortfolio(e) {
+    e.preventDefault();
+    try {
+        await apiFetch('/portfolios', { method:'POST', body: JSON.stringify({ name: $('pf_name').value, description: $('pf_desc').value || '' }) });
+        loadPortfolio();
+    } catch(err) { alert(err.message); }
+}
+
+// ======================== MARKETS ========================
+let marketsData = [];
+async function loadMarkets() {
+    showEl('marketsLoading'); $('marketsList').innerHTML = '';
+    hideEl('marketDetail'); showEl('marketDetailEmpty');
+    try {
+        marketsData = await apiFetch('/markets/search', { method:'POST', body: JSON.stringify({ limit: 15 }) });
+        hideEl('marketsLoading');
+        if (!marketsData || marketsData.length === 0) {
+            $('marketsList').innerHTML = emptyState('map-pin', 'No market data available');
+            refreshIcons();
+            return;
+        }
+        $('marketsList').innerHTML = marketsData.map(m => {
+            const met = m.metrics || {};
+            return `<div class="glass-light glass-hover rounded-xl p-4 cursor-pointer flex items-center gap-4" onclick="viewMarketDetail('${m.geo_id || m.name}', '${m.name}')">
+                <div class="w-8 h-8 rounded-lg bg-brand-500/10 flex items-center justify-center text-xs font-bold text-brand-400 shrink-0">${m.rank||'-'}</div>
+                <div class="flex-1 min-w-0">
+                    <div class="text-sm font-medium truncate">${m.name||'--'}</div>
+                    <div class="text-[10px] text-slate-400 flex gap-3 mt-0.5">
+                        <span>Price: ${fmtCurrency(met.median_sold_price)}</span>
+                        <span>Yield: ${met.rent_yield!=null?(met.rent_yield*100).toFixed(1)+'%':'--'}</span>
+                    </div>
+                </div>
+                <div class="text-right shrink-0">
+                    <div class="text-sm font-bold" style="color:${scoreColor(m.overall_score||0)}">${m.overall_score!=null?m.overall_score.toFixed(0):'--'}</div>
+                    <div class="text-[10px] text-slate-400">Score</div>
+                </div>
+            </div>`;
+        }).join('');
+    } catch(e) { hideEl('marketsLoading'); $('marketsList').innerHTML = emptyState('alert-circle', e.message); }
+    refreshIcons();
+}
+
+async function viewMarketDetail(geoId, name) {
+    hideEl('marketDetailEmpty'); showEl('marketDetail');
+    $('marketDetailName').textContent = name;
+    $('marketGrade').textContent = 'Loading...';
+    $('marketScores').innerHTML = spinner();
+
+    try {
+        const zip = geoId.toString().replace(/\D/g, '').slice(0,5) || geoId;
+        let scoreData = null;
+        try { scoreData = await apiFetch(`/markets/${zip}/score`); } catch(e) {}
+
+        if (scoreData) {
+            $('marketGrade').innerHTML = `Overall Grade: <span class="font-bold text-brand-400">${scoreData.overall_grade||'--'}</span> (${scoreData.overall_score||'--'}/100)`;
+            const scores = scoreData.scores || {};
+            $('marketScores').innerHTML = Object.entries(scores).map(([k,v]) => {
+                const pct = typeof v === 'number' ? v : (v && v.score ? v.score : 0);
+                return `<div class="flex items-center gap-3 text-xs">
+                    <span class="text-slate-400 w-28 shrink-0">${k.replace(/_/g,' ').replace(/\b\w/g,l=>l.toUpperCase())}</span>
+                    <div class="flex-1 h-2 rounded-full bg-white/5 overflow-hidden"><div class="h-full rounded-full" style="width:${Math.min(pct,100)}%;background:${scoreColor(pct)}"></div></div>
+                    <span class="font-medium w-8 text-right">${typeof pct==='number'?pct.toFixed(0):'--'}</span>
+                </div>`;
+            }).join('');
+        } else {
+            $('marketGrade').textContent = '';
+            $('marketScores').innerHTML = '<p class="text-slate-500 text-xs">Score data not available for this market</p>';
+        }
+
+        // Forecast chart
+        try {
+            const forecast = await apiFetch(`/markets/${zip}/forecast?horizon=36`);
+            if (forecast && forecast.length > 0) {
+                if (charts.marketForecast) charts.marketForecast.destroy();
+                charts.marketForecast = new Chart($('marketForecastChart'), {
+                    type: 'line',
+                    data: {
+                        labels: forecast.map(f => f.metric + ' (' + f.horizon_months + 'mo)'),
+                        datasets: [
+                            { label:'P50 (Expected)', data: forecast.map(f=>f.p50), borderColor:'#2b8eff', tension:0.3, pointRadius:4, pointBackgroundColor:'#2b8eff' },
+                            { label:'P10 (Bear)', data: forecast.map(f=>f.p10), borderColor:'#f87171', borderDash:[4,4], tension:0.3, pointRadius:2 },
+                            { label:'P90 (Bull)', data: forecast.map(f=>f.p90), borderColor:'#34d399', borderDash:[4,4], tension:0.3, pointRadius:2 },
+                        ]
+                    },
+                    options: { responsive:true, maintainAspectRatio:false, plugins:{ legend:{ labels:{color:'#94a3b8',font:{size:9}} } }, scales:{ x:{ticks:{color:'#475569',font:{size:8}},grid:{color:'rgba(255,255,255,0.03)'}}, y:{ticks:{color:'#475569',font:{size:9}},grid:{color:'rgba(255,255,255,0.03)'}} } }
+                });
+            }
+        } catch(e) {}
+    } catch(e) {
+        $('marketScores').innerHTML = `<p class="text-red-400 text-xs">${e.message}</p>`;
+    }
+    refreshIcons();
+}
+
+// ======================== AI SOURCING ========================
+async function loadSourcing() {
+    showEl('sourcingLoading'); $('sourcingLeads').innerHTML = ''; hideEl('sourcingEmpty');
+    $('sourcingStats').innerHTML = '';
+
+    // Load stats
+    try {
+        const stats = await apiFetch('/sourcing/stats');
+        $('sourcingStats').innerHTML = [
+            { label:'Total Leads', value: fmt(stats.total_leads), icon:'users', color:'text-brand-400' },
+            { label:'High Motivation', value: fmt(stats.high_motivation_leads), icon:'flame', color:'text-amber-400' },
+            { label:'Total Potential Savings', value: fmtCurrency(stats.total_potential_savings), icon:'piggy-bank', color:'text-emerald-400' },
+        ].map(k => `
+            <div class="glass rounded-xl p-4 flex items-center gap-3">
+                <div class="w-10 h-10 rounded-lg bg-brand-500/10 flex items-center justify-center shrink-0"><i data-lucide="${k.icon}" class="w-5 h-5 ${k.color}"></i></div>
+                <div><div class="${k.color} text-lg font-bold">${k.value}</div><div class="text-[10px] text-slate-400">${k.label}</div></div>
+            </div>`).join('');
+
+        // Populate signal type filter from stats
+        if (stats.by_signal_type) {
+            const sel = $('srcSignalType');
+            const existing = sel.options.length;
+            if (existing <= 1) {
+                Object.keys(stats.by_signal_type).forEach(s => {
+                    const opt = document.createElement('option');
+                    opt.value = s; opt.textContent = s.replace(/_/g,' ');
+                    sel.appendChild(opt);
+                });
+            }
+        }
+        if (stats.by_state) {
+            const sel = $('srcState');
+            const existing = sel.options.length;
+            if (existing <= 1) {
+                Object.keys(stats.by_state).sort().forEach(s => {
+                    const opt = document.createElement('option');
+                    opt.value = s; opt.textContent = s;
+                    sel.appendChild(opt);
+                });
+            }
+        }
+    } catch(e) {}
+
+    // Load leads
+    try {
+        allSourceLeads = await apiFetch('/sourcing/leads?min_motivation=0&limit=50');
+        hideEl('sourcingLoading');
+        renderSourceLeads(allSourceLeads);
+    } catch(e) { hideEl('sourcingLoading'); $('sourcingLeads').innerHTML = `<div class="col-span-full text-red-400 text-sm text-center py-8">${e.message}</div>`; }
+    refreshIcons();
+}
+
+function filterSourceLeads() {
+    const minMot = +$('srcMotivation').value;
+    const sigType = $('srcSignalType').value;
+    const state = $('srcState').value;
+    let filtered = allSourceLeads.filter(l => {
+        if (l.motivation_score < minMot) return false;
+        if (sigType && (!l.signals || !l.signals.includes(sigType))) return false;
+        if (state && l.state !== state) return false;
+        return true;
+    });
+    renderSourceLeads(filtered);
+}
+
+function renderSourceLeads(leads) {
+    if (!leads || leads.length === 0) {
+        $('sourcingLeads').innerHTML = '';
+        showEl('sourcingEmpty');
+        refreshIcons();
+        return;
+    }
+    hideEl('sourcingEmpty');
+    const signalColors = { foreclosure:'red', pre_foreclosure:'red', tax_lien:'amber', probate:'purple', divorce:'purple', vacancy:'blue', code_violation:'amber', high_equity:'emerald', absentee_owner:'blue' };
+    $('sourcingLeads').innerHTML = leads.map(l => {
+        const pd = l.property_details || {};
+        const sigColor = l.signals && l.signals[0] ? (signalColors[l.signals[0]] || 'blue') : 'blue';
+        const discount = l.estimated_discount != null ? Math.round(l.estimated_discount * 100) : null;
+        return `<div class="glass rounded-xl p-4 glass-hover transition-all">
+            <div class="flex items-center justify-between mb-2">
+                <div class="flex gap-1.5 flex-wrap">${(l.signals||[]).map(s => `<span class="badge badge-${signalColors[s]||'blue'}">${s.replace(/_/g,' ')}</span>`).join('')}</div>
+                <div class="w-9 h-9 rounded-full flex items-center justify-center text-xs font-bold shrink-0" style="background:${scoreColor(l.motivation_score||0)}15;color:${scoreColor(l.motivation_score||0)}">${l.motivation_score||0}</div>
+            </div>
+            <div class="text-sm font-medium mb-0.5">${l.address||'--'}</div>
+            <div class="text-[10px] text-slate-400 mb-2">${l.city||''}, ${l.state||''}</div>
+            <div class="flex gap-3 text-[10px] text-slate-400 mb-3">
+                ${pd.bedrooms?`<span>${pd.bedrooms}bd`:''}${pd.bathrooms?` / ${pd.bathrooms}ba`:''}${pd.sqft?` / ${fmt(pd.sqft)}sf`:''}</span>
+            </div>
+            <div class="flex items-end justify-between">
+                <div>
+                    <div class="text-[10px] text-slate-400">Est. Value</div>
+                    <div class="text-sm font-medium">${fmtCurrency(l.estimated_value)}</div>
+                </div>
+                <div class="text-right">
+                    <div class="text-[10px] text-slate-400">Deal Price</div>
+                    <div class="text-sm font-bold text-emerald-400">${fmtCurrency(l.potential_deal_price)}</div>
+                </div>
+                ${discount != null ? `<div class="badge badge-emerald">${discount}% off</div>` : ''}
+            </div>
+        </div>`;
+    }).join('');
+    refreshIcons();
+}
+
+// ======================== FINANCING ========================
+async function loadFinancing() {
+    $('lenderDirectory').innerHTML = '';
+    showEl('lenderLoading');
+    hideEl('quoteResults');
+    try {
+        const lenders = await apiFetch('/financing/lenders');
+        hideEl('lenderLoading');
+        if (!lenders || lenders.length === 0) {
+            $('lenderDirectory').innerHTML = emptyState('landmark', 'No lenders available');
+            refreshIcons();
+            return;
+        }
+        $('lenderDirectory').innerHTML = lenders.map(l => `
+            <div class="glass-light rounded-lg p-4">
+                <div class="flex items-center justify-between mb-2">
+                    <div>
+                        <div class="text-sm font-semibold">${l.name}</div>
+                        <div class="text-[10px] text-slate-400">${l.type||''}</div>
+                    </div>
+                    ${l.website ? `<a href="${l.website}" target="_blank" class="text-brand-400 text-xs hover:underline">Visit</a>` : ''}
+                </div>
+                ${l.products && l.products.length ? `<div class="space-y-1 mt-2">${l.products.map(p => `
+                    <div class="flex items-center justify-between text-xs">
+                        <span class="text-slate-300">${p.name||p.loan_type}</span>
+                        <span class="text-slate-400">${p.rate_range||'--'} &middot; Max LTV ${p.max_ltv||'--'}%</span>
+                    </div>`).join('')}</div>` : ''}
+            </div>`).join('');
+    } catch(e) { hideEl('lenderLoading'); $('lenderDirectory').innerHTML = emptyState('alert-circle', e.message); }
+    refreshIcons();
+}
+
+async function handleQuickQuote(e) {
+    e.preventDefault();
+    hideEl('quoteResults');
+    const btn = e.target.querySelector('button[type=submit]');
+    btn.disabled = true; btn.textContent = 'Loading...';
+    try {
+        const quotes = await apiFetch('/financing/quick-quote', { method:'POST', body: JSON.stringify({
+            property_value: +$('fq_value').value,
+            down_payment_pct: (+$('fq_dp').value) / 100,
+            credit_score: +$('fq_credit').value,
+            property_type: $('fq_type').value,
+        })});
+        showEl('quoteResults');
+        if (!quotes || quotes.length === 0) {
+            $('quoteTableBody').innerHTML = '<tr><td colspan="7" class="text-center text-slate-400 text-sm py-6">No quotes available for your criteria</td></tr>';
+        } else {
+            $('quoteTableBody').innerHTML = quotes.map(q => `
+                <tr class="table-row border-b border-white/3">
+                    <td class="px-4 py-2 font-medium">${q.lender||'--'}</td>
+                    <td class="px-4 py-2">${q.product||'--'}</td>
+                    <td class="px-4 py-2">${q.loan_type||'--'}</td>
+                    <td class="px-4 py-2 text-right">${q.estimated_rate!=null?(q.estimated_rate*100).toFixed(2)+'%':(q.rate||'--')}</td>
+                    <td class="px-4 py-2 text-right">${q.monthly_payment_low!=null?fmtCurrency(q.monthly_payment_low):'--'}</td>
+                    <td class="px-4 py-2 text-center">${q.meets_criteria ? '<span class="text-emerald-400 font-bold">Yes</span>' : '<span class="text-red-400 font-bold">No</span>'}</td>
+                    <td class="px-4 py-2 text-xs text-slate-400 max-w-[180px] truncate">${q.notes||'--'}</td>
+                </tr>`).join('');
+        }
+    } catch(err) {
+        showEl('quoteResults');
+        $('quoteTableBody').innerHTML = `<tr><td colspan="7" class="text-center text-red-400 text-sm py-6">${err.message}</td></tr>`;
+    }
+    btn.disabled = false; btn.textContent = 'Get Quotes';
+    refreshIcons();
+}
+
+// ======================== BOOT ========================
+document.addEventListener('DOMContentLoaded', async () => {
+    refreshIcons();
+    if (token) {
+        await initApp();
+    } else {
+        showEl('authModal');
+    }
+});
+</script>
+</body>
+</html>
